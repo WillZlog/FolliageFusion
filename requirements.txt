@@ -1,0 +1,5 @@
+dotenv
+openai
+webcolors
+youtube_transcript_api
+google-api-python-client
