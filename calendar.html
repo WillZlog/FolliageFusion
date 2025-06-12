@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Watering Calendar</title>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+    <header>
+        <h1>Watering Calendar</h1>
+        <div class="header-buttons">
+            <button id="darkModeToggle" aria-label="Toggle dark mode">🌙</button>
+        </div>
+    </header>
+
+    <main>
+        <!-- Legend for species colors -->
+        <div id="legend" class="legend"
+            style="display:flex; gap:1rem; flex-wrap:wrap; justify-content:center; margin:1rem;"></div>
+
+        <!-- Navigation -->
+        <div class="nav-buttons">
+            <button id="prev-month">◀ Previous</button>
+            <button id="next-month">Next ▶</button>
+        </div>
+
+        <!-- Month-Year display -->
+        <div class="month-year" id="month-year"></div>
+
+        <!-- Calendar grid -->
+        <div class="calendar">
+            <table class="calendar-table">
+                <thead>
+                    <tr>
+                        <th>Sun</th>
+                        <th>Mon</th>
+                        <th>Tue</th>
+                        <th>Wed</th>
+                        <th>Thu</th>
+                        <th>Fri</th>
+                        <th>Sat</th>
+                    </tr>
+                </thead>
+                <tbody id="calendar-body"></tbody>
+            </table>
+        </div>
+        <p style="text-align:center; margin-top:1rem;">
+      <a href="index.html" style="color: var(--text-color); text-decoration: underline;">
+        ← Back to All Cameras
+      </a>
+    </p>
+    </main>
+
+    <script>
+        // Dark Mode Toggle Logic
+        const toggleBtn = document.getElementById("darkModeToggle");
+        const htmlEl = document.documentElement;
+        const savedTheme = localStorage.getItem("theme");
+        if (savedTheme === "dark") {
+            htmlEl.classList.add("dark-mode");
+            toggleBtn.textContent = "☀️";
+        } else {
+            htmlEl.classList.remove("dark-mode");
+            toggleBtn.textContent = "🌙";
+        }
+        toggleBtn.addEventListener("click", () => {
+            htmlEl.classList.toggle("dark-mode");
+            const isDark = htmlEl.classList.contains("dark-mode");
+            toggleBtn.textContent = isDark ? "☀️" : "🌙";
+            localStorage.setItem("theme", isDark ? "dark" : "light");
+        });
+
+        (async function () {
+            // Dark Mode Toggle Logic
+            const toggleBtn = document.getElementById("darkModeToggle");
+            const htmlEl = document.documentElement;
+            const savedTheme = localStorage.getItem("theme");
+            if (savedTheme === "dark") {
+                htmlEl.classList.add("dark-mode");
+                toggleBtn.textContent = "☀️";
+            } else {
+                htmlEl.classList.remove("dark-mode");
+                toggleBtn.textContent = "🌙";
+            }
+            toggleBtn.addEventListener("click", () => {
+                htmlEl.classList.toggle("dark-mode");
+                const isDark = htmlEl.classList.contains("dark-mode");
+                toggleBtn.textContent = isDark ? "☀️" : "🌙";
+                localStorage.setItem("theme", isDark ? "dark" : "light");
+            });
+
+            // Load cameras and build speciesMap
+            const camRes = await fetch('cameras.json?cache=' + Date.now(), { cache: 'no-store' });
+            const camList = await camRes.json();
+            const speciesMap = {};
+            const colors = ['var(--status-healthy)', '#007bff', '#dc3545', '#ffc107', '#28a745', '#17a2b8'];
+            let colorIdx = 0;
+            for (const cam of camList) {
+                const spec = cam.species;
+                if (!speciesMap[spec]) {
+                    try {
+                        const recRes = await fetch(`finalSuggestions/${spec}Rec.json?cache=${Date.now()}`);
+                        const rec = await recRes.json();
+                        const interval = parseInt(rec.watering_interval_days || rec['watering_interval_days'] || '7', 10) || 7;
+                        const start = new Date(rec.timestamp || new Date().toISOString());
+                        speciesMap[spec] = { interval, start, color: colors[colorIdx++ % colors.length] };
+                    } catch (e) {
+                        console.warn(`No JSON for ${spec}`, e);
+                    }
+                }
+            }
+
+            // Precompute watering days per species for the current month
+            function computeSpeciesDates(year, month) {
+                const map = {};
+                for (const [spec, info] of Object.entries(speciesMap)) {
+                    const dates = [];
+                    let occ = new Date(info.start);
+                    // fast-forward to first occurrence in or after month start
+                    const monthStart = new Date(year, month, 1);
+                    while (occ < monthStart) {
+                        occ.setDate(occ.getDate() + info.interval);
+                    }
+                    // collect all occurrences in this month
+                    while (occ.getFullYear() === year && occ.getMonth() === month) {
+                        dates.push(occ.getDate());
+                        occ.setDate(occ.getDate() + info.interval);
+                    }
+                    map[spec] = dates;
+                }
+                return map;
+            }
+
+            // Build legend
+            const legendEl = document.getElementById('legend');
+            for (const [spec, info] of Object.entries(speciesMap)) {
+                const item = document.createElement('div'); item.className = 'legend-item';
+                item.innerHTML = `<span class='dot' style='background:${info.color}'></span>${spec}`;
+                legendEl.appendChild(item);
+            }
+
+            // Calendar state
+            let year = new Date().getFullYear();
+            let month = new Date().getMonth();
+
+            function renderCalendar() {
+                const body = document.getElementById('calendar-body');
+                const monthYear = document.getElementById('month-year');
+                const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+                monthYear.textContent = `${monthNames[month]} ${year}`;
+                body.innerHTML = '';
+
+                const firstDay = new Date(year, month, 1).getDay();
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                const speciesDates = computeSpeciesDates(year, month);
+
+                let tr = document.createElement('tr');
+                for (let i = 0; i < firstDay; i++) tr.appendChild(document.createElement('td'));
+                for (let d = 1; d <= daysInMonth; d++) {
+                    if (tr.children.length === 7) { body.appendChild(tr); tr = document.createElement('tr'); }
+                    const td = document.createElement('td'); td.textContent = d;
+                    // add dots for all species occurring today
+                    for (const [spec, dates] of Object.entries(speciesDates)) {
+                        if (dates.includes(d)) {
+                            const dot = document.createElement('span'); dot.className = 'dot';
+                            dot.style.background = speciesMap[spec].color;
+                            td.appendChild(dot);
+                        }
+                    }
+                    // highlight today
+                    const today = new Date();
+                    if (year === today.getFullYear() && month === today.getMonth() && d === today.getDate()) td.classList.add('today');
+                    tr.appendChild(td);
+                }
+                while (tr.children.length < 7) tr.appendChild(document.createElement('td'));
+                body.appendChild(tr);
+            }
+
+            document.getElementById('prev-month').onclick = () => { month--; if (month < 0) { month = 11; year--; } renderCalendar(); };
+            document.getElementById('next-month').onclick = () => { month++; if (month > 11) { month = 0; year++; } renderCalendar(); };
+            renderCalendar();
+        })();
+    </script>
+</body>
+
+</html>

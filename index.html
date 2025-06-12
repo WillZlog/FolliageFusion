@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>All Cameras Dashboard</title>
+
+  <!-- Leaflet CSS (for the map) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+
+  <!-- Leaflet.heat plugin CSS isn’t needed—just include the JS below -->
+
+  <!-- Link to your external CSS file -->
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <!-- Redirect to login if not authenticated -->
+  <script>
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      window.location.href = 'login.html';
+    }
+  </script>
+
+  <header>
+    <h1>All Cameras Dashboard</h1>
+    <div class="header-buttons">
+      <button id="wateringCalendar" aria-label="Open watering calendar"
+        onclick="location.href = 'calendar.html';">📆</button>
+      <!-- Dark Mode Toggle -->
+      <button id="darkModeToggle" aria-label="Toggle dark mode">🌙</button>
+      <!-- Export CSV Button -->
+      <button id="exportCsvBtn" aria-label="Export CSV">📄</button>
+      <!-- Logout Button -->
+      <button id="logoutBtn" aria-label="Log out">🚪 Log Out</button>
+    </div>
+  </header>
+
+  <!-- Controls: Search, Filter, Sort -->
+  <div class="search-container">
+    <input type="text" id="searchInput" placeholder="🔍 Search cameras by name or species..." />
+    <select id="statusFilter">
+      <option value="all">All Statuses</option>
+      <option value="healthy">Healthy Only</option>
+      <option value="unhealthy">Unhealthy Only</option>
+    </select>
+    <select id="sortOrder">
+      <option value="name-asc">Name: A→Z</option>
+      <option value="name-desc">Name: Z→A</option>
+      <option value="updated-newest">Last Updated: Newest</option>
+      <option value="updated-oldest">Last Updated: Oldest</option>
+      <option value="status-unhealthy">Status: Unhealthy First</option>
+      <option value="status-healthy">Status: Healthy First</option>
+    </select>
+  </div>
+
+  <!-- Main Container: Map + Grid -->
+  <div class="main-container">
+    <!-- 1) Map container -->
+    <div id="map"></div>
+
+    <!-- 2) Grid of camera cards -->
+    <div>
+      <div id="cameraGrid" class="camera-grid"></div>
+      <p id="noCamerasMsg" class="no-cameras" style="display:none;">
+        No cameras match your criteria.
+      </p>
+    </div>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <!-- Leaflet.heat plugin -->
+  <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+
+  <script>
+    // ─── Logout Button Logic ────────────────────────────────────
+    const logoutBtn = document.getElementById("logoutBtn");
+    logoutBtn.addEventListener("click", () => {
+      localStorage.removeItem("access_token");
+      window.location.href = "login.html";
+    });
+
+    // ─── Dark Mode Toggle Logic ────────────────────────────────
+    const toggleBtn = document.getElementById("darkModeToggle");
+    const htmlEl = document.documentElement;
+    const savedTheme = localStorage.getItem("theme");
+    if (savedTheme === "dark") {
+      htmlEl.classList.add("dark-mode");
+      toggleBtn.textContent = "☀️";
+    } else {
+      htmlEl.classList.remove("dark-mode");
+      toggleBtn.textContent = "🌙";
+    }
+    toggleBtn.addEventListener("click", () => {
+      htmlEl.classList.toggle("dark-mode");
+      const isDark = htmlEl.classList.contains("dark-mode");
+      toggleBtn.textContent = isDark ? "☀️" : "🌙";
+      localStorage.setItem("theme", isDark ? "dark" : "light");
+    });
+
+    // ─── Leaflet Map Initialization ────────────────────────────
+    const map = L.map("map", {
+      center: [41.019, -73.626], // adjust to your desired center
+      zoom: 14,
+      scrollWheelZoom: true
+    });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    // Prepare heatmap layer (initially empty)
+    let heatLayer = L.heatLayer([], { radius: 25, blur: 15, maxZoom: 17 }).addTo(map);
+
+    const cameraMarkers = {}; // id → marker
+    const cameraHeatData = []; // will hold [lat, lng, weight] for heatmap
+
+    // ─── Main Dashboard Logic ───────────────────────────────────
+    const grid = document.getElementById("cameraGrid");
+    const noCamMsg = document.getElementById("noCamerasMsg");
+    const searchInput = document.getElementById("searchInput");
+    const statusFilter = document.getElementById("statusFilter");
+    const sortOrder = document.getElementById("sortOrder");
+    const exportBtn = document.getElementById("exportCsvBtn");
+
+    let camerasList = [];        // loaded from cameras.json
+    const cameraElements = {};   // id → { card, statusBadge, lastUpdate, favToggle }
+
+    // Read favorites from localStorage (returns a Set of IDs)
+    function loadFavorites() {
+      const favJson = localStorage.getItem("favorites");
+      return favJson ? new Set(JSON.parse(favJson)) : new Set();
+    }
+    function saveFavorites(favSet) {
+      localStorage.setItem("favorites", JSON.stringify([...favSet]));
+    }
+    let favorites = loadFavorites();
+
+    // 1) Load cameras.json
+    fetch("cameras.json?t=" + Date.now(), { cache: "no-store" })
+      .then(res => {
+        if (!res.ok) throw new Error("Cannot load cameras.json: " + res.statusText);
+        return res.json();
+      })
+      .then(cameras => {
+        camerasList = Array.isArray(cameras) ? cameras : [];
+        if (camerasList.length === 0) {
+          noCamMsg.style.display = "block";
+          return;
+        }
+
+        // Sort camerasList so favorites come first
+        reorderCamerasList();
+
+        // Build initial cards and markers
+        camerasList.forEach(cam => {
+          cam.healthy = undefined;
+          cam.timestampDate = undefined;
+          cam.matchPercent = cam.match_percent ?? null;
+          /* 
+            Assumes each cam entry (or its detail JSON) has a numeric 
+            "match_percent" (0–100). If not provided by your backend, skip heatmap for that camera. 
+          */
+
+          // ── Create camera card ──────────────────────────────────
+          const card = document.createElement("div");
+          card.classList.add("camera-card");
+          if (favorites.has(cam.id)) card.classList.add("favorite");
+          card.dataset.name = cam.name.toLowerCase();
+          card.dataset.species = (cam.species || "").toLowerCase();
+
+          // Thumbnail image
+          const img = document.createElement("img");
+          img.src = cam.previewImage;
+          img.alt = cam.name + " preview";
+          img.onerror = () => { img.src = "images/placeholder.png"; };
+          card.appendChild(img);
+
+          // Favorite toggle (star)
+          const favBtn = document.createElement("button");
+          favBtn.classList.add("favorite-toggle");
+          favBtn.innerHTML = favorites.has(cam.id) ? "⭐" : "☆";
+          if (favorites.has(cam.id)) favBtn.classList.add("favorite");
+          favBtn.title = favorites.has(cam.id) ? "Unpin camera" : "Pin camera";
+          favBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            toggleFavorite(cam.id, favBtn, card);
+          });
+          card.appendChild(favBtn);
+
+          // Card content wrapper
+          const content = document.createElement("div");
+          content.classList.add("card-content");
+
+          // Camera name
+          const title = document.createElement("h3");
+          title.textContent = cam.name;
+          content.appendChild(title);
+
+          // Status badge placeholder
+          const statusBadge = document.createElement("span");
+          statusBadge.textContent = "Loading…";
+          content.appendChild(statusBadge);
+
+          // Last updated placeholder
+          const lastUpdate = document.createElement("p");
+          lastUpdate.style.fontSize = "0.85rem";
+          lastUpdate.style.color = "var(--text-color)";
+          lastUpdate.textContent = "";
+          content.appendChild(lastUpdate);
+
+          card.appendChild(content);
+
+          // “View Details” link
+          const link = document.createElement("a");
+          link.href = `camera.html?id=${encodeURIComponent(cam.id)}`;
+          link.textContent = "View Details";
+          card.appendChild(link);
+
+          grid.appendChild(card);
+
+          cameraElements[cam.id] = {
+            card,
+            statusBadge,
+            lastUpdate,
+            favToggle: favBtn
+          };
+
+          // ── Create a Leaflet CircleMarker for this camera ───────
+          const marker = L.circleMarker([cam.lat, cam.lng], {
+            radius: 8,
+            weight: 2,
+            color: "#888",    // default border
+            fillColor: "#ccc",// default fill
+            fillOpacity: 0.7
+          }).bindPopup(`<strong>${cam.name}</strong><br>Loading…`);
+          marker.addTo(map);
+          cameraMarkers[cam.id] = marker;
+        });
+
+        // Fit the map so all markers are visible
+        const group = new L.featureGroup(Object.values(cameraMarkers));
+        map.fitBounds(group.getBounds().pad(0.2));
+
+        updateAllStatuses();
+        setInterval(updateAllStatuses, 30000);
+      })
+      .catch(err => {
+        console.error("❌ Error loading cameras.json:", err);
+        noCamMsg.textContent = "Failed to load cameras.json.";
+        noCamMsg.style.display = "block";
+      });
+
+    // Toggle favorite status for a camera
+    function toggleFavorite(id, favBtn, card) {
+      if (favorites.has(id)) {
+        favorites.delete(id);
+        favBtn.innerHTML = "☆";
+        favBtn.classList.remove("favorite");
+        card.classList.remove("favorite");
+        favBtn.title = "Pin camera";
+      } else {
+        favorites.add(id);
+        favBtn.innerHTML = "⭐";
+        favBtn.classList.add("favorite");
+        card.classList.add("favorite");
+        favBtn.title = "Unpin camera";
+      }
+      saveFavorites(favorites);
+      reorderCamerasList();
+      sortCameras(); // re‑append cards in new order
+    }
+
+    // Reorder camerasList so favorites appear first (preserving original order otherwise)
+    function reorderCamerasList() {
+      camerasList.sort((a, b) => {
+        const aFav = favorites.has(a.id) ? 0 : 1;
+        const bFav = favorites.has(b.id) ? 0 : 1;
+        return aFav - bFav;
+      });
+    }
+
+    // ─── Fetch each camera’s JSON and update card + marker + heatmap data ───
+    function updateAllStatuses() {
+      cameraHeatData.length = 0; // reset heat data array
+
+      camerasList.forEach(cam => {
+        const refs = cameraElements[cam.id];
+        const marker = cameraMarkers[cam.id];
+        if (!refs || !marker) return;
+
+        fetch(cam.dataUrl + "?t=" + Date.now(), { cache: "no-store" })
+          .then(r => {
+            if (!r.ok) throw new Error("Cannot load " + cam.dataUrl + ": " + r.statusText);
+            return r.json();
+          })
+          .then(plantData => {
+            cam.healthy = plantData.healthy === "YES";
+            cam.timestampDate = new Date(plantData.timestamp);
+            // Assume backend now returns numeric match_percent (0–100)
+            cam.matchPercent = plantData.match_percent ?? cam.matchPercent;
+
+            // Update card’s status badge
+            refs.statusBadge.textContent = cam.healthy ? "Healthy" : "Unhealthy";
+            refs.statusBadge.className = "";
+            refs.statusBadge.classList.add("status-badge");
+            refs.statusBadge.classList.add(
+              cam.healthy ? "status-healthy" : "status-unhealthy"
+            );
+
+            // Update card’s “Last updated” text
+            refs.lastUpdate.textContent = "Last updated: " + cam.timestampDate.toLocaleString();
+
+            // Update marker color and popup
+            const fillColor = cam.healthy ? "#28a745" : "#dc3545";
+            const borderColor = cam.healthy ? "#1c7a1c" : "#a10a0a";
+            marker.setStyle({ color: borderColor, fillColor });
+            marker.bindPopup(
+              `<strong>${cam.name}</strong><br>
+               Status: ${cam.healthy ? "Healthy ✅" : "Unhealthy ❌"}<br>
+               Last updated: ${cam.timestampDate.toLocaleString()}`
+            );
+
+            // If we have a numeric matchPercent, add to heatmap data (weight = (100 − matchPercent)/100)
+            if (typeof cam.matchPercent === "number") {
+              const weight = (100 - cam.matchPercent) / 100;
+              cameraHeatData.push([cam.lat, cam.lng, weight]);
+            }
+
+            applyFiltersAndSort();
+          })
+          .catch(err => {
+            console.error("❌ Error fetching detail for", cam.id, err);
+            refs.statusBadge.textContent = "Error";
+            refs.statusBadge.className = "";
+            refs.statusBadge.classList.add("status-badge", "status-unhealthy");
+            refs.lastUpdate.textContent = "";
+
+            cam.healthy = false;
+            cam.timestampDate = new Date(0);
+
+            marker.setStyle({ color: "#666", fillColor: "#999" });
+            marker.bindPopup(`<strong>${cam.name}</strong><br>Error loading data`);
+
+            // Still try to include in heatmap with maximum weight
+            if (typeof cam.matchPercent === "number") {
+              const weight = 1; // full red
+              cameraHeatData.push([cam.lat, cam.lng, weight]);
+            }
+
+            applyFiltersAndSort();
+          });
+      });
+
+      // Once all cameraHeatData is populated, update the heatmap layer
+      setTimeout(() => {
+        heatLayer.setLatLngs(cameraHeatData);
+      }, 100); // slight delay to ensure data is collected
+    }
+
+    // ─── Filter and sort grid + markers ───────────────────────
+    function applyFiltersAndSort() {
+      const query = searchInput.value.trim().toLowerCase();
+      const statusVal = statusFilter.value;
+      let anyVisible = false;
+
+      camerasList.forEach(cam => {
+        const refs = cameraElements[cam.id];
+        const marker = cameraMarkers[cam.id];
+        const card = refs.card;
+
+        // 1) Search match
+        const matchesSearch =
+          cam.name.toLowerCase().includes(query) ||
+          (cam.species || "").toLowerCase().includes(query);
+
+        // 2) Status match
+        let matchesStatus;
+        if (statusVal === "all") {
+          matchesStatus = true;
+        } else if (cam.healthy === undefined) {
+          matchesStatus = false;
+        } else if (statusVal === "healthy") {
+          matchesStatus = cam.healthy === true;
+        } else {
+          matchesStatus = cam.healthy === false;
+        }
+
+        if (matchesSearch && matchesStatus) {
+          card.style.display = "flex";
+          if (!map.hasLayer(marker)) {
+            marker.addTo(map);
+          }
+          anyVisible = true;
+        } else {
+          card.style.display = "none";
+          if (map.hasLayer(marker)) {
+            map.removeLayer(marker);
+          }
+        }
+      });
+
+      noCamMsg.style.display = anyVisible ? "none" : "block";
+      sortCameras();
+    }
+
+    // ─── Sort camera cards (and re‑append in that order) ───────
+    function sortCameras() {
+      const order = sortOrder.value;
+      const sorted = [...camerasList];
+
+      sorted.sort((a, b) => {
+        const aTime = a.timestampDate instanceof Date ? a.timestampDate.getTime() : 0;
+        const bTime = b.timestampDate instanceof Date ? b.timestampDate.getTime() : 0;
+
+        // Keep favorites locked at front (preserve relative order among favorites)
+        const aFav = favorites.has(a.id) ? 0 : 1;
+        const bFav = favorites.has(b.id) ? 0 : 1;
+        if (aFav !== bFav) return aFav - bFav;
+
+        switch (order) {
+          case "name-asc":
+            return a.name.localeCompare(b.name);
+          case "name-desc":
+            return b.name.localeCompare(a.name);
+          case "updated-newest":
+            return bTime - aTime;
+          case "updated-oldest":
+            return aTime - bTime;
+          case "status-unhealthy":
+            return (a.healthy ? 1 : 0) - (b.healthy ? 1 : 0);
+          case "status-healthy":
+            return (b.healthy ? 1 : 0) - (a.healthy ? 1 : 0);
+          default:
+            return 0;
+        }
+      });
+
+      sorted.forEach(cam => {
+        const card = cameraElements[cam.id].card;
+        grid.appendChild(card);
+      });
+    }
+
+    // ─── Export CSV Functionality ─────────────────────────────
+    exportBtn.addEventListener("click", () => {
+      const rows = ["id,name,status,last_checked,favorite"];
+      camerasList.forEach(cam => {
+        const status = cam.healthy ? "Healthy" : "Unhealthy";
+        const ts = cam.timestampDate ? cam.timestampDate.toISOString() : "";
+        const favFlag = favorites.has(cam.id) ? "Yes" : "No";
+        rows.push(`${cam.id},${cam.name},${status},${ts},${favFlag}`);
+      });
+      const blob = new Blob([rows.join("\n")], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "camera_report.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    // ─── Event listeners ───────────────────────────────────────
+    searchInput.addEventListener("input", applyFiltersAndSort);
+    statusFilter.addEventListener("change", applyFiltersAndSort);
+    sortOrder.addEventListener("change", sortCameras);
+
+    // after token check, but before rendering your dashboard UI:
+    fetch('http://127.0.0.1:5002/api/auth/me', {
+      headers: { 'Authorization': 'Bearer ' + localStorage.getItem('access_token') }
+    })
+      .then(r => {
+        if (!r.ok) throw new Error('Not authorized');
+        return r.json();
+      })
+      .then(user => {
+        if (user.is_admin) {
+          const header = document.querySelector('header');
+          const adminLink = document.createElement('a');
+          adminLink.href = 'admin.html';
+          adminLink.textContent = 'Admin';
+          adminLink.style.marginLeft = '1rem';
+          adminLink.style.color = 'white';           // adjust to suit your theme
+          adminLink.style.textDecoration = 'none';
+          header.appendChild(adminLink);
+        }
+      })
+      .catch(() => {
+        // not admin or token expired → nothing to do
+      });
+  </script>
+</body>
+
+</html>

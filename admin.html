@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin - Pending Signups</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    body { font-family: Arial, sans-serif; margin:0; padding:0; background: var(--bg-color); color: var(--text-color); }
+    header { background: var(--header-bg); color: var(--header-text); padding: 1rem; display: flex; justify-content: space-between; align-items: center; }
+    header h1 { margin: 0; font-size: 1.5rem; }
+    #darkModeToggle { background:none; border:none; font-size:1.2rem; cursor:pointer; color: var(--header-text); }
+    main { padding: 1rem; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { border:1px solid var(--card-shadow); padding:0.5rem; text-align:left; }
+    th { background: var(--card-bg); }
+    .actions button { margin-right: 0.5rem; padding:0.3rem 0.6rem; cursor:pointer; border:none; border-radius:4px; }
+    .approve { background: #28a745; color:white; }
+    .reject { background: #dc3545; color:white; }
+    #message { margin-top:1rem; text-align:center; display:none; }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>Admin - Pending Signups</h1>
+    <button id="darkModeToggle" aria-label="Toggle dark mode">🌙</button>
+  </header>
+  <main>
+    <p id="message"></p>
+    <table id="requestsTable">
+      <thead>
+        <tr><th>Username</th><th>Email</th><th>Name</th><th>Actions</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </main>
+
+  <script>
+    // Dark mode toggle
+    const toggle = document.getElementById('darkModeToggle');
+    const htmlEl = document.documentElement;
+    if (localStorage.getItem('theme') === 'dark') { htmlEl.classList.add('dark-mode'); toggle.textContent='☀️'; }
+    toggle.onclick = () => { const dark = htmlEl.classList.toggle('dark-mode'); toggle.textContent = dark?'☀️':'🌙'; localStorage.setItem('theme', dark?'dark':'light'); };
+
+    // Ensure admin token present
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      window.location.href = 'login.html';
+    }
+
+    const msgEl = document.getElementById('message');
+    const tbody = document.querySelector('#requestsTable tbody');
+
+    async function loadRequests() {
+      try {
+        const res = await fetch('http://127.0.0.1:5002/api/auth/signup-requests', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (!res.ok) throw new Error('Failed to fetch');
+        const data = await res.json();
+        tbody.innerHTML = '';
+        data.pending.forEach(req => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${req.username}</td>
+            <td>${req.email}</td>
+            <td>${req.first_name} ${req.last_name}</td>
+            <td class="actions">
+              <button class="approve">Approve</button>
+              <button class="reject">Reject</button>
+            </td>
+          `;
+          // Actions
+          tr.querySelector('.approve').onclick = () => respond(req.username, true);
+          tr.querySelector('.reject').onclick = () => respond(req.username, false);
+          tbody.appendChild(tr);
+        });
+      } catch (e) {
+        console.error(e);
+        msgEl.textContent = 'Error loading requests.';
+        msgEl.style.color = 'var(--status-unhealthy)';
+        msgEl.style.display = 'block';
+      }
+    }
+
+    async function respond(username, approve) {
+      const endpoint = approve ? 'signup-approve' : 'signup-reject';
+      try {
+        const res = await fetch(`http://127.0.0.1:5002/api/auth/${endpoint}`, {
+          method: 'POST',
+          headers: { 'Content-Type':'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({ username })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          msgEl.textContent = data.msg;
+          msgEl.style.color = 'var(--status-healthy)';
+          msgEl.style.display = 'block';
+          loadRequests();
+        } else {
+          msgEl.textContent = data.msg || 'Action failed.';
+          msgEl.style.color = 'var(--status-unhealthy)';
+          msgEl.style.display = 'block';
+        }
+      } catch (e) {
+        console.error(e);
+        msgEl.textContent = 'Network error.';
+        msgEl.style.color = 'var(--status-unhealthy)';
+        msgEl.style.display = 'block';
+      }
+    }
+
+    // Initial load
+    loadRequests();
+  </script>
+</body>
+</html>

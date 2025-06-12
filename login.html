@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Immediately apply saved theme to avoid flash -->
+  <script>
+    if (localStorage.getItem('theme') === 'dark') {
+      document.documentElement.classList.add('dark-mode');
+    }
+  </script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Login</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    body { display:flex; justify-content:center; align-items:center; height:100vh; background-color:var(--bg-color); color:var(--text-color); margin:0; }
+    #loginBox { background-color:var(--card-bg); padding:2rem; border-radius:8px; box-shadow:0 2px 8px var(--card-shadow); width:320px; position:relative; }
+    #loginBox h2 { text-align:center; margin-bottom:1rem; }
+    .inputGroup { margin-bottom:1rem; }
+    .inputGroup label { display:block; margin-bottom:0.25rem; }
+    .inputGroup input { width:100%; padding:0.5rem; border:1px solid #ccc; border-radius:4px; background-color:var(--input-bg); color:var(--input-text); }
+    .inputGroup input:focus { outline:none; border-color:#007bff; box-shadow:0 0 4px rgba(0,123,255,0.25); }
+    #loginBtn { width:100%; padding:0.6rem; font-size:1rem; border:none; border-radius:4px; background-color:#007bff; color:white; cursor:pointer; }
+    #loginBtn:hover { background-color:#0069d9; }
+    #errorMsg { margin-top:0.5rem; text-align:center; color:#dc3545; display:none; }
+    #darkModeToggle { position:absolute; top:1rem; right:1rem; background:none; border:none; font-size:1.2rem; cursor:pointer; color:var(--header-text); }
+  </style>
+</head>
+<body>
+  <button id="darkModeToggle" aria-label="Toggle theme">🌙</button>
+  <div id="loginBox">
+    <h2>Log In</h2>
+    <div class="inputGroup">
+      <label for="username">Username</label>
+      <input type="text" id="username" autocomplete="username" />
+    </div>
+    <div class="inputGroup">
+      <label for="password">Password</label>
+      <input type="password" id="password" autocomplete="current-password" />
+    </div>
+    <!-- set type="button" to prevent form submission page reload -->
+    <button type="button" id="loginBtn">Log In</button>
+    <p id="errorMsg">Invalid credentials</p>
+  </div>
+
+  <script>
+    // Dark Mode Toggle
+    const toggleBtn = document.getElementById('darkModeToggle');
+    const htmlEl = document.documentElement;
+    if (localStorage.getItem('theme') === 'dark') {
+      htmlEl.classList.add('dark-mode'); toggleBtn.textContent='☀️';
+    }
+    toggleBtn.addEventListener('click', () => {
+      const isDark = htmlEl.classList.toggle('dark-mode');
+      toggleBtn.textContent = isDark ? '☀️' : '🌙';
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    });
+
+    const loginBtn = document.getElementById('loginBtn');
+    const errorMsg = document.getElementById('errorMsg');
+
+    loginBtn.addEventListener('click', async () => {
+      // clear previous error
+      errorMsg.style.display = 'none';
+
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      if (!username || !password) {
+        errorMsg.textContent = 'Please enter both username and password.';
+        errorMsg.style.display = 'block';
+        return;
+      }
+
+      try {
+        const res = await fetch('http://127.0.0.1:5002/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          // store JWT and redirect
+          localStorage.setItem('access_token', data.access_token);
+          window.location.href = 'index.html';
+        } else {
+          errorMsg.textContent = data.msg || 'Login failed';
+          errorMsg.style.display = 'block';
+        }
+      } catch (e) {
+        console.error('Login error:', e);
+        errorMsg.textContent = 'Network or server error';
+        errorMsg.style.display = 'block';
+      }
+    });
+
+    // auto-redirect if already logged in
+    if (localStorage.getItem('access_token')) {
+      window.location.href = 'index.html';
+    }
+  </script>
+</body>
+</html>

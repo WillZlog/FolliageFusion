@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sign Up</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    body { display:flex;justify-content:center;align-items:center;height:100vh;
+           background:var(--bg-color);color:var(--text-color);margin:0; }
+    #signupBox { background:var(--card-bg);padding:2rem;border-radius:8px;
+                 box-shadow:0 2px 8px var(--card-shadow);width:360px;position:relative; }
+    #signupBox h2{ text-align:center;margin-bottom:1rem; }
+    .inputGroup { margin-bottom:1rem; }
+    .inputGroup label { display:block;margin-bottom:0.25rem;}
+    .inputGroup input{width:100%;padding:0.5rem;border:1px solid #ccc;
+                       border-radius:4px;background:var(--input-bg);color:var(--input-text);}
+    .inputGroup input:focus{outline:none;border-color:#007bff;
+                             box-shadow:0 0 4px rgba(0,123,255,0.25);}
+    #signupBtn{width:100%;padding:0.6rem;border:none;border-radius:4px;
+               background:#28a745;color:#fff;font-size:1rem;cursor:pointer;}
+    #signupBtn:hover{background:#218838;}
+    #message{margin-top:1rem;text-align:center;display:none;}
+    #darkModeToggle{position:absolute;top:1rem;right:1rem;background:none;
+                    border:none;font-size:1.2rem;cursor:pointer;color:var(--header-text);}
+  </style>
+</head>
+<body>
+  <button id="darkModeToggle" aria-label="Toggle theme">🌙</button>
+  <div id="signupBox">
+    <h2>Create Account</h2>
+    <div class="inputGroup">
+      <label for="firstName">First Name</label>
+      <input id="firstName" autocomplete="given-name" />
+    </div>
+    <div class="inputGroup">
+      <label for="lastName">Last Name</label>
+      <input id="lastName" autocomplete="family-name" />
+    </div>
+    <div class="inputGroup">
+      <label for="email">Email</label>
+      <input id="email" type="email" autocomplete="email" />
+    </div>
+    <div class="inputGroup">
+      <label for="username">Username</label>
+      <input id="username" autocomplete="username" />
+    </div>
+    <div class="inputGroup">
+      <label for="password">Password</label>
+      <input id="password" type="password" autocomplete="new-password" />
+    </div>
+    <button id="signupBtn">Sign Up</button>
+    <p id="message"></p>
+  </div>
+
+  <script>
+    // Dark/light toggle
+    const toggle = document.getElementById('darkModeToggle'),
+          html = document.documentElement;
+    if (localStorage.getItem('theme')==='dark') {
+      html.classList.add('dark-mode'); toggle.textContent='☀️';
+    }
+    toggle.onclick = () => {
+      const dark = html.classList.toggle('dark-mode');
+      toggle.textContent = dark ? '☀️' : '🌙';
+      localStorage.setItem('theme', dark ? 'dark':'light');
+    };
+
+    // Sign-up logic
+    document.getElementById('signupBtn').onclick = async () => {
+      const msg = document.getElementById('message');
+      const payload = {
+        first_name: document.getElementById('firstName').value.trim(),
+        last_name:  document.getElementById('lastName').value.trim(),
+        email:      document.getElementById('email').value.trim(),
+        username:   document.getElementById('username').value.trim(),
+        password:   document.getElementById('password').value
+      };
+      if (Object.values(payload).some(v=>!v)) {
+        msg.textContent='All fields are required.';
+        msg.style.color='var(--status-unhealthy)';
+        msg.style.display='block';
+        return;
+      }
+      msg.textContent='Creating account…';
+      msg.style.color='var(--text-color)';
+      msg.style.display='block';
+
+      try {
+        const res = await fetch('http://127.0.0.1:5002/api/auth/signup', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify(payload)
+        });
+        const j = await res.json();
+        if (res.ok) {
+          msg.textContent = j.msg;
+          msg.style.color = 'var(--status-healthy)';
+          setTimeout(()=> location.href='login.html', 1500);
+        } else {
+          msg.textContent = j.msg;
+          msg.style.color = 'var(--status-unhealthy)';
+        }
+      } catch (e) {
+        console.error(e);
+        msg.textContent = 'Network error.';
+        msg.style.color = 'var(--status-unhealthy)';
+      }
+    };
+  </script>
+</body>
+</html>
