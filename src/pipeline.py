@@ -49,7 +49,7 @@ client = OpenAI(api_key=openai_api_key)
 
 # Directories
 BASE_DIR     = Path(__file__).parent
-DATA_DIR     = BASE_DIR / "data"
+DATA_DIR     = BASE_DIR.parent / "static" / "data"
 SAVED_DIR    = DATA_DIR / "savedJson"
 FINAL_DIR    = DATA_DIR / "finalSuggestions"
 IMAGES_DIR   = BASE_DIR.parent / "static" / "images"

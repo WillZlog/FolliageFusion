@@ -5,7 +5,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Watering Calendar</title>
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="../static/styles.css" />
 </head>
 
 <body>
@@ -93,7 +93,7 @@
             });
 
             // Load cameras and build speciesMap
-            const camRes = await fetch('cameras.json?cache=' + Date.now(), { cache: 'no-store' });
+            const camRes = await fetch("/static/data/cameras.json?t=" + Date.now(), { cache: "no-store" });
             const camList = await camRes.json();
             const speciesMap = {};
             const colors = ['var(--status-healthy)', '#007bff', '#dc3545', '#ffc107', '#28a745', '#17a2b8'];
@@ -102,7 +102,7 @@
                 const spec = cam.species;
                 if (!speciesMap[spec]) {
                     try {
-                        const recRes = await fetch(`finalSuggestions/${spec}Rec.json?cache=${Date.now()}`);
+                        const recRes = await fetch(`/static/data/finalSuggestions/${spec}Rec.json?cache=${Date.now()}`);
                         const rec = await recRes.json();
                         const interval = parseInt(rec.watering_interval_days || rec['watering_interval_days'] || '7', 10) || 7;
                         const start = new Date(rec.timestamp || new Date().toISOString());

@@ -5,12 +5,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Camera Details</title>
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="../static/styles.css" />
 </head>
 
 <body>
   <header>
-    <h1 id="camName">Camera Details</h1>
+    <h1 id="camName">🌿 Folliage Fusion Camera Details</h1>
     <!-- Dark Mode Toggle Button (same as index.html) -->
     <button id="darkModeToggle" aria-label="Toggle dark mode">🌙</button>
   </header>
@@ -41,247 +41,231 @@
     </p>
   </main>
 
-  <script>
-    // ============================
-    // Dark Mode Toggle Logic
-    // ============================
-    const toggleBtn = document.getElementById("darkModeToggle");
-    const htmlEl = document.documentElement;
+<script>
+  // ============================
+  // Dark Mode Toggle Logic
+  // ============================
+  const toggleBtn = document.getElementById("darkModeToggle");
+  const htmlEl = document.documentElement;
 
-    // 1) On page load, check localStorage for saved theme
-    const savedTheme = localStorage.getItem("theme");
-    if (savedTheme === "dark") {
-      htmlEl.classList.add("dark-mode");
-      toggleBtn.textContent = "☀️";
-    } else {
-      htmlEl.classList.remove("dark-mode");
-      toggleBtn.textContent = "🌙";
-    }
+  const savedTheme = localStorage.getItem("theme");
+  if (savedTheme === "dark") {
+    htmlEl.classList.add("dark-mode");
+    toggleBtn.textContent = "☀️";
+  } else {
+    htmlEl.classList.remove("dark-mode");
+    toggleBtn.textContent = "🌙";
+  }
 
-    // 2) When the button is clicked, toggle dark-mode class & save preference
-    toggleBtn.addEventListener("click", () => {
-      htmlEl.classList.toggle("dark-mode");
-      const isDark = htmlEl.classList.contains("dark-mode");
-      toggleBtn.textContent = isDark ? "☀️" : "🌙";
-      localStorage.setItem("theme", isDark ? "dark" : "light");
-    });
+  toggleBtn.addEventListener("click", () => {
+    htmlEl.classList.toggle("dark-mode");
+    const isDark = htmlEl.classList.contains("dark-mode");
+    toggleBtn.textContent = isDark ? "☀️" : "🌙";
+    localStorage.setItem("theme", isDark ? "dark" : "light");
+  });
 
-    // ============================
-    // Camera Detail Logic
-    // ============================
-    const detailApp = document.getElementById("detailApp");
-    const camNameH1 = document.getElementById("camName");
+  // ============================
+  // Camera Detail Logic
+  // ============================
+  const detailApp = document.getElementById("detailApp");
+  const camNameH1 = document.getElementById("camName");
 
-    // 1) Get the camera ID from the query string, e.g. ?id=spruce
-    const params = new URLSearchParams(window.location.search);
-    const camId = params.get("id");
-    if (!camId) {
-      detailApp.textContent = "No camera ID provided in URL.";
-      throw new Error("camera.html: Missing ?id= query parameter.");
-    }
+  const params = new URLSearchParams(window.location.search);
+  const camId = params.get("id");
+  if (!camId) {
+    detailApp.textContent = "No camera ID provided in URL.";
+    throw new Error("camera.html: Missing ?id= query parameter.");
+  }
 
-    // 2) Load cameras.json so we know which dataUrl and name to use
-    fetch("cameras.json?t=" + Date.now(), { cache: "no-store" })
-      .then(res => {
-        if (!res.ok) throw new Error("Cannot load cameras.json: " + res.statusText);
-        return res.json();
-      })
-      .then(cameras => {
-        // Find the camera entry that matches camId
-        const camEntry = cameras.find(c => c.id === camId);
-        if (!camEntry) {
-          detailApp.textContent = `Camera not found: ${camId}`;
-          throw new Error(`camera.html: No entry for ID "${camId}" in cameras.json.`);
-        }
+  fetch("/static/data/cameras.json?t=" + Date.now(), { cache: "no-store" })
+    .then(res => {
+      if (!res.ok) throw new Error("Cannot load cameras.json: " + res.statusText);
+      return res.json();
+    })
+    .then(cameras => {
+      const camEntry = cameras.find(c => c.id === camId);
+      if (!camEntry) {
+        detailApp.textContent = `Camera not found: ${camId}`;
+        throw new Error(`camera.html: No entry for ID "${camId}" in cameras.json.`);
+      }
 
-        // Update the header to show the camera’s name
-        camNameH1.textContent = camEntry.name;
+      camNameH1.textContent = "🌿 Folliage Fusion -- " + camEntry.name;
 
-        // Fetch that camera’s detailed JSON
-        return fetch(camEntry.dataUrl + "?t=" + Date.now(), { cache: "no-store" })
-          .then(r2 => {
-            if (!r2.ok) throw new Error(`Cannot load ${camEntry.dataUrl}: ${r2.statusText}`);
-            return r2.json();
-          })
-          .then(plantData => {
-            // ── 2a. Species & image (preview) ─────────────────────────
-            if (plantData.species) {
-              const spTitle = document.createElement("h2");
-              spTitle.textContent = `Species: ${plantData.species}`;
-              spTitle.style.marginBottom = "0.5rem";
-              detailApp.appendChild(spTitle);
+      return fetch("/static/data/" + camEntry.dataUrl + "?t=" + Date.now(), { cache: "no-store" })
+        .then(r2 => {
+          if (!r2.ok) throw new Error(`Cannot load ${camEntry.dataUrl}: ${r2.statusText}`);
+          return r2.json();
+        })
+        .then(plantData => {
+          if (plantData.species) {
+            const spTitle = document.createElement("h2");
+            spTitle.textContent = `Species: ${plantData.species}`;
+            spTitle.style.marginBottom = "0.5rem";
+            detailApp.appendChild(spTitle);
 
-              const img = document.createElement("img");
-              img.src = camEntry.previewImage;
-              img.alt = plantData.species;
-              img.style.maxWidth = "300px";
-              img.style.display = "block";
-              img.style.margin = "0.5rem auto 1rem auto";
-              img.onerror = () => {
-                // Fallback in case the preview image fails
-                img.src = "images/placeholder.png";
-              };
-              detailApp.appendChild(img);
-            }
+            const img = document.createElement("img");
+            img.src = "/static/" + camEntry.previewImage;
+            img.alt = plantData.species;
+            img.style.maxWidth = "300px";
+            img.style.display = "block";
+            img.style.margin = "0.5rem auto 1rem auto";
+            img.onerror = () => {
+              img.src = "/static/images/placeholder.png";
+            };
+            detailApp.appendChild(img);
+          }
 
-            // ── 2b. Healthy status ──────────────────────────────────
-            const statusEl = document.createElement("h3");
-            statusEl.textContent =
-              plantData.healthy === "YES" ? "Status: Healthy ✅" : "Status: Unhealthy ❌";
-            statusEl.style.marginTop = "1rem";
-            detailApp.appendChild(statusEl);
+          const statusEl = document.createElement("h3");
+          statusEl.textContent =
+            plantData.healthy === "YES" ? "Status: Healthy ✅" : "Status: Unhealthy ❌";
+          statusEl.style.marginTop = "1rem";
+          detailApp.appendChild(statusEl);
 
-            const statusLE = document.createElement("h3");
-            statusLE.textContent = plantData.percentage + "% Healthy"
-            statusLE.style.marginTop = "0";
-            detailApp.appendChild(statusLE)
+          const statusLE = document.createElement("h3");
+          statusLE.textContent = plantData.percentage + "% Healthy"
+          statusLE.style.marginTop = "0";
+          detailApp.appendChild(statusLE);
 
-            // ── 2c. Timestamp ────────────────────────────────────────
-            const timeEl = document.createElement("p");
-            timeEl.style.color = "var(--text-color)";
-            timeEl.textContent = "Last checked: " + new Date(plantData.timestamp).toLocaleString();
-            detailApp.appendChild(timeEl);
+          const timeEl = document.createElement("p");
+          timeEl.style.color = "var(--text-color)";
+          timeEl.textContent = "Last checked: " + new Date(plantData.timestamp).toLocaleString();
+          detailApp.appendChild(timeEl);
 
-            // ── 2d. Observed leaf color ─────────────────────────────
-            const observedWrapper = document.createElement("div");
-            observedWrapper.style.display = "flex";
-            observedWrapper.style.alignItems = "center";
-            observedWrapper.style.margin = "1rem 0";
+          const observedWrapper = document.createElement("div");
+          observedWrapper.style.display = "flex";
+          observedWrapper.style.alignItems = "center";
+          observedWrapper.style.margin = "1rem 0";
 
-            const observedLabel = document.createElement("h4");
-            observedLabel.textContent = "Observed Leaf Color:";
-            observedLabel.style.marginRight = "0.5rem";
-            observedWrapper.appendChild(observedLabel);
+          const observedLabel = document.createElement("h4");
+          observedLabel.textContent = "Observed Leaf Color:";
+          observedLabel.style.marginRight = "0.5rem";
+          observedWrapper.appendChild(observedLabel);
 
-            const observedSwatch = document.createElement("div");
-            observedSwatch.style.width = "40px";
-            observedSwatch.style.height = "40px";
-            observedSwatch.style.backgroundColor = plantData.observed_leaf_color;
-            observedSwatch.style.border = "1px solid #ccc";
-            observedSwatch.style.borderRadius = "4px";
-            observedWrapper.appendChild(observedSwatch);
+          const observedSwatch = document.createElement("div");
+          observedSwatch.style.width = "40px";
+          observedSwatch.style.height = "40px";
+          observedSwatch.style.backgroundColor = plantData.observed_leaf_color;
+          observedSwatch.style.border = "1px solid #ccc";
+          observedSwatch.style.borderRadius = "4px";
+          observedWrapper.appendChild(observedSwatch);
 
-            const observedHex = document.createElement("code");
-            observedHex.textContent = " " + plantData.observed_leaf_color;
-            observedHex.style.marginLeft = "0.5rem";
-            observedWrapper.appendChild(observedHex);
+          const observedHex = document.createElement("code");
+          observedHex.textContent = "\u00a0" + plantData.observed_leaf_color;
+          observedHex.style.marginLeft = "0.5rem";
+          observedWrapper.appendChild(observedHex);
 
-            detailApp.appendChild(observedWrapper);
+          detailApp.appendChild(observedWrapper);
 
-            // ── 2e. Expected leaf colors ────────────────────────────
-            const expectedWrapper = document.createElement("div");
-            expectedWrapper.style.margin = "1rem 0";
+          const expectedWrapper = document.createElement("div");
+          expectedWrapper.style.margin = "1rem 0";
 
-            const expectedLabel = document.createElement("h4");
-            expectedLabel.textContent = "Expected Leaf Colors:";
-            expectedWrapper.appendChild(expectedLabel);
+          const expectedLabel = document.createElement("h4");
+          expectedLabel.textContent = "Expected Leaf Colors:";
+          expectedWrapper.appendChild(expectedLabel);
 
-            const swatchContainer = document.createElement("div");
-            swatchContainer.style.display = "flex";
-            swatchContainer.style.gap = "0.5rem";
-            swatchContainer.style.marginTop = "0.5rem";
+          const swatchContainer = document.createElement("div");
+          swatchContainer.style.display = "flex";
+          swatchContainer.style.gap = "0.5rem";
+          swatchContainer.style.marginTop = "0.5rem";
 
-            plantData.expected_leaf_colors.forEach(hex => {
-              const sw = document.createElement("div");
-              sw.style.width = "30px";
-              sw.style.height = "30px";
-              sw.style.backgroundColor = hex;
-              sw.style.border = "1px solid #ccc";
-              sw.style.borderRadius = "4px";
-              sw.title = hex;
-              swatchContainer.appendChild(sw);
-            });
+          plantData.expected_leaf_colors.forEach(hex => {
+            const sw = document.createElement("div");
+            sw.style.width = "30px";
+            sw.style.height = "30px";
+            sw.style.backgroundColor = hex;
+            sw.style.border = "1px solid #ccc";
+            sw.style.borderRadius = "4px";
+            sw.title = hex;
+            swatchContainer.appendChild(sw);
+          });
 
-            expectedWrapper.appendChild(swatchContainer);
-            detailApp.appendChild(expectedWrapper);
+          expectedWrapper.appendChild(swatchContainer);
+          detailApp.appendChild(expectedWrapper);
 
-            // ── 2f. Possible reasons unhealthy ───────────────────────
-            if (plantData.healthy === "NO") {
-              const reasonDiv = document.createElement("div");
-              reasonDiv.style.margin = "1rem 0";
+          if (plantData.healthy === "NO") {
+            const reasonDiv = document.createElement("div");
+            reasonDiv.style.margin = "1rem 0";
 
-              const rl = document.createElement("h4");
-              rl.textContent = "Possible Reasons Unhealthy:";
-              reasonDiv.appendChild(rl);
+            const rl = document.createElement("h4");
+            rl.textContent = "Possible Reasons Unhealthy:";
+            reasonDiv.appendChild(rl);
 
-              const ul = document.createElement("ul");
-              ul.style.marginLeft = "1rem";
-              plantData.reasons_unhealthy.forEach(txt => {
-                const li = document.createElement("li");
-                li.textContent = txt;
-                ul.appendChild(li);
-              });
-              reasonDiv.appendChild(ul);
-              detailApp.appendChild(reasonDiv);
-            }
-
-            // ── 2g. Treatment recommendations ────────────────────────
-            const treatDiv = document.createElement("div");
-            treatDiv.style.margin = "1rem 0";
-
-            const tl = document.createElement("h4");
-            tl.textContent = "Treatment Recommendations:";
-            treatDiv.appendChild(tl);
-
-            const ut = document.createElement("ul");
-            ut.style.marginLeft = "1rem";
-            plantData.treatment_recommendations.forEach(txt => {
+            const ul = document.createElement("ul");
+            ul.style.marginLeft = "1rem";
+            plantData.reasons_unhealthy.forEach(txt => {
               const li = document.createElement("li");
               li.textContent = txt;
-              ut.appendChild(li);
+              ul.appendChild(li);
             });
-            treatDiv.appendChild(ut);
-            detailApp.appendChild(treatDiv);
+            reasonDiv.appendChild(ul);
+            detailApp.appendChild(reasonDiv);
+          }
+
+          const treatDiv = document.createElement("div");
+          treatDiv.style.margin = "1rem 0";
+
+          const tl = document.createElement("h4");
+          tl.textContent = "Treatment Recommendations:";
+          treatDiv.appendChild(tl);
+
+          const ut = document.createElement("ul");
+          ut.style.marginLeft = "1rem";
+          plantData.treatment_recommendations.forEach(txt => {
+            const li = document.createElement("li");
+            li.textContent = txt;
+            ut.appendChild(li);
           });
-      })
-      .catch(err => {
-        console.error(err);
-        detailApp.textContent = "Error loading camera details.";
-      });
-
-    // Assume CAMERA_ID and SPECIES are set earlier in JS
-    const CAMERA_ID = new URLSearchParams(window.location.search).get('id');
-
-    const chatForm = document.getElementById('chat-form');
-    const chatInput = document.getElementById('chat-input');
-    const chatMessages = document.getElementById('chat-messages');
-
-    chatForm.addEventListener('submit', async e => {
-      e.preventDefault();
-      const userMsg = chatInput.value.trim();
-      if (!userMsg) return;
-      appendMessage('user', userMsg);
-      chatInput.value = '';
-
-      // Send user message to backend AI endpoint
-      const res = await fetch(`http://127.0.0.1:5001/api/cameras/${CAMERA_ID}/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMsg })
-      });
-      const { reply } = await res.json();
-      appendMessage('bot', reply);
+          treatDiv.appendChild(ut);
+          detailApp.appendChild(treatDiv);
+        });
+    })
+    .catch(err => {
+      console.error(err);
+      detailApp.textContent = "Error loading camera details.";
     });
 
-    function appendMessage(sender, text) {
-      const msgEl = document.createElement('div');
-      msgEl.classList.add('chat-message', sender);
-      msgEl.textContent = text;
-      chatMessages.appendChild(msgEl);
-      chatMessages.scrollTop = chatMessages.scrollHeight;
-    }
+  const CAMERA_ID = new URLSearchParams(window.location.search).get('id');
 
-    const chatToggle = document.getElementById('chat-toggle');
-    const chatClose = document.getElementById('chat-close');
-    const chatSection = document.getElementById('chat-section');
+  const chatForm = document.getElementById('chat-form');
+  const chatInput = document.getElementById('chat-input');
+  const chatMessages = document.getElementById('chat-messages');
 
-    chatToggle.addEventListener('click', () => {
-      chatSection.classList.toggle('hidden');
+  chatForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    const userMsg = chatInput.value.trim();
+    if (!userMsg) return;
+    appendMessage('user', userMsg);
+    chatInput.value = '';
+
+    const res = await fetch(`http://127.0.0.1:5001/api/cameras/${CAMERA_ID}/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: userMsg })
     });
-    chatClose.addEventListener('click', () => {
-      chatSection.classList.add('hidden');
-    });
-  </script>
+    const { reply } = await res.json();
+    appendMessage('bot', reply);
+  });
+
+  function appendMessage(sender, text) {
+    const msgEl = document.createElement('div');
+    msgEl.classList.add('chat-message', sender);
+    msgEl.textContent = text;
+    chatMessages.appendChild(msgEl);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+
+  const chatToggle = document.getElementById('chat-toggle');
+  const chatClose = document.getElementById('chat-close');
+  const chatSection = document.getElementById('chat-section');
+
+  chatToggle.addEventListener('click', () => {
+    chatSection.classList.toggle('hidden');
+  });
+  chatClose.addEventListener('click', () => {
+    chatSection.classList.add('hidden');
+  });
+</script>
+
 </body>
 
 </html>

@@ -131,6 +131,10 @@ FolliageFusion/
 
    * Once running, your Raspberry Pi will automatically begin submitting tree photos every 10 minutes.
 
+**OPTIONAL**
+
+   * Run ./run.sh in your terminal to get set up quickly after creating env!
+
 ---
 
 ## 🔒 Authentication & Admin
@@ -156,7 +160,7 @@ FolliageFusion/
 
 ## 🧑‍💻 Maintainers
 
-Built by \[@WillZLog] and \[Carson] — high school researchers and builders passionate about AI + environmental sustainability.
+Built by \@WillZLog and \[Carson] — high school researchers and builders passionate about AI + environmental sustainability.
 
 ---
 
