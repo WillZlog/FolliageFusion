@@ -156,7 +156,7 @@ FolliageFusion/
 
 ## 🧑‍💻 Maintainers
 
-Built by \[@WillZLog] and \[Carson] — high school researchers and builders passionate about AI + environmental sustainability.
+Built by \[@WillZLog](https://github.com/WillZLog) and \[Carson] — high school researchers and builders passionate about AI + environmental sustainability.
 
 ---
 
