@@ -16,6 +16,9 @@ Called by process_image.py with:
 7) Write out final JSON → finalSuggestions/<species>Rec.json
 """
 
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import os
 import json
 import base64
@@ -24,11 +27,12 @@ import argparse
 from pathlib import Path
 from dotenv import load_dotenv
 from geopy.geocoders import Nominatim
-from recom import generate_tree_care_json
+from src.recom import generate_tree_care_json
 from openai import OpenAI
 import datetime
 from PIL import Image
 import numpy as np
+
 
 now = datetime.datetime.utcnow()  # For timestamps
 
@@ -45,17 +49,18 @@ client = OpenAI(api_key=openai_api_key)
 
 # Directories
 BASE_DIR     = Path(__file__).parent
-SAVED_DIR    = BASE_DIR / "savedJson"
-FINAL_DIR    = BASE_DIR / "finalSuggestions"
-IMAGES_DIR   = BASE_DIR / "images"
-SAVED_DIR.mkdir(exist_ok=True)
-FINAL_DIR.mkdir(exist_ok=True)
-IMAGES_DIR.mkdir(exist_ok=True)
+DATA_DIR     = BASE_DIR / "data"
+SAVED_DIR    = DATA_DIR / "savedJson"
+FINAL_DIR    = DATA_DIR / "finalSuggestions"
+IMAGES_DIR   = BASE_DIR.parent / "static" / "images"
+SAVED_DIR.mkdir(parents=True, exist_ok=True)
+FINAL_DIR.mkdir(parents=True, exist_ok=True)
+IMAGES_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def mask_out_trunk(image_path: Path) -> Path:
     """
-    Opens the tree image, converts to HSV, and keeps only “green foliage” pixels.
+    Opens the tree image, converts to HSV, and keeps only "green foliage" pixels.
     Anything non-green (e.g. brown trunk) becomes white. Saves as PNG and returns that path.
     """
     img_rgb = Image.open(image_path).convert("RGB")
@@ -66,7 +71,7 @@ def mask_out_trunk(image_path: Path) -> Path:
     S = hsv_arr[:, :, 1]
     V = hsv_arr[:, :, 2]
 
-    # Broad “green” band: 30 < H < 140
+    # Broad "green" band: 30 < H < 140
     hue_mask = (H > 30) & (H < 140)
     sat_mask = (S > 20)   # somewhat saturated
     val_mask = (V > 20)   # not too dark
@@ -83,14 +88,14 @@ def mask_out_trunk(image_path: Path) -> Path:
     return tmp_path
 
 
-def get_location_from_zip(zip_code: str) -> (float, float):
+def get_location_from_zip(zip_code: str) -> (float, float): # type: ignore
     """
     Geocode a US ZIP to (latitude, longitude) using Nominatim.
     """
     geolocator = Nominatim(user_agent="my_geocoder")
     loc = geolocator.geocode(f"{zip_code}, USA")
     if not loc:
-        raise ValueError(f"Unable to geocode ZIP {zip_code}.")
+        raise ValueError(f"Unable to geocode ZIP {zip_code}.")
     return loc.latitude, loc.longitude
 
 
@@ -123,11 +128,11 @@ def chat_with_json_and_image(image_url: str, recommendations: dict) -> dict:
         '  • "percentage": a percentage value (0–100) on how healthy the tree is.\n'
         '  • "observed_leaf_color": a single hex code (e.g. "#RRGGBB") for the dominant leaf color\n'
         '    (⚠️Ignore bark/trunk/branches—sample only leaf/foliage pixels.)\n'
-        '  • "expected_leaf_colors": an array of five hex codes for this season’s recommended leaf colors\n'
+        '  • "expected_leaf_colors": an array of five hex codes for this season\'s recommended leaf colors\n'
         '  • "reasons_unhealthy": if `"healthy" == "NO"`, an array of exactly three short strings; if `"healthy" == "YES"`, an empty array\n'
         '  • "treatment_recommendations": an array of three strings with concrete steps to improve plant health\n'
-        "  • \"Watering Schedule\": recommended watering frequency MUST BE A NUMBER. (e.g. for once a week do 7, for twice a week do 3 etc.).\n"
-        '  • "timestamp": current UTC date/time in ISO 8601 (e.g. "2025-06-02T22:39:11Z")\n\n'
+        "  • 'Watering Schedule': recommended watering frequency MUST BE A NUMBER. (e.g. for once a week do 7, for twice a week do 3 etc.).\n"
+        '  • "timestamp": current UTC date/time in ISO 8601 (e.g. "2025-06-02T22:39:11Z")\n\n'
         "⚠️IMPORTANT: Do not sample trunk or brown/bark areas—focus only on green leaf pixels.\n\n"
         "Strictly output only valid JSON—no Markdown fences, no extra keys, no commentary.\n"
     )
@@ -141,7 +146,7 @@ def chat_with_json_and_image(image_url: str, recommendations: dict) -> dict:
             f"{recs_json_str}\n\n"
             "Analyze the plant image and those recommendations, then return the required JSON.\n\n"
             f"The current date/time is {now.isoformat()}Z.\n"
-            f"The tree’s location is Lat: {recommendations.get('latitude')}, Lon: {recommendations.get('longitude')}."
+            f"The tree's location is Lat: {recommendations.get('latitude')}, Lon: {recommendations.get('longitude')}."
         ),
         "image_url": image_url
     }
@@ -165,7 +170,6 @@ def chat_with_json_and_image(image_url: str, recommendations: dict) -> dict:
     if content is None:
         raise RuntimeError(f"No 'content' in assistant response:\n{response}")
 
-    # Strip ```json fences if present
     if isinstance(content, str) and content.startswith("```json") and content.endswith("```"):
         content = content[len("```json"):-len("```")].strip()
 
@@ -186,7 +190,6 @@ def ensure_recommendations_exist(species: str, lat: float, lon: float) -> dict:
     if json_path.exists():
         with open(json_path, "r") as f:
             info = json.load(f)
-            # Also attach lat/lon for downstream messaging
             info["latitude"] = lat
             info["longitude"] = lon
             return info
@@ -199,7 +202,6 @@ def ensure_recommendations_exist(species: str, lat: float, lon: float) -> dict:
     )
     if not info:
         raise RuntimeError("Failed to generate tree care JSON.")
-    # Append lat/lon so chat_with_json_and_image can mention location
     info["latitude"] = lat
     info["longitude"] = lon
     return info
@@ -233,14 +235,14 @@ def main():
         print(f"Geocoding error: {e}")
         return
 
-    print(f"\n>> [Pipeline] Ensuring care JSON for '{species}' at ZIP {zip_code} ({lat:.5f}, {lon:.5f}) …")
+    print(f"\n>> [Pipeline] Ensuring care JSON for '{species}' at ZIP {zip_code} ({lat:.5f}, {lon:.5f}) …")
     try:
         recommendations = ensure_recommendations_exist(species, lat, lon)
     except Exception as e:
         print(f"Failed to get/generate recommendations: {e}")
         return
 
-    print(" ↪ Care recommendations loaded.\n")
+    print(" ↪ Care recommendations loaded.\n")
 
     # 2) Mask out trunk → leaf-only image
     print(">> [Pipeline] Masking out trunk/bark …")
@@ -250,7 +252,7 @@ def main():
         print(f"⚠️ Warning: could not mask out trunk. Using original image. ({e})")
         leaf_only_path = image_path
 
-    print(f" ↪ Leaf-only image at {leaf_only_path.name}\n")
+    print(f" ↪ Leaf-only image at {leaf_only_path.name}\n")
 
     # 3) Encode leaf-only or original image to data URL
     print(">> [Pipeline] Encoding image …")
@@ -260,7 +262,7 @@ def main():
         print(f"ERROR: Could not encode image: {e}")
         return
 
-    print(" ↪ Image encoded.\n")
+    print(" ↪ Image encoded.\n")
 
     # 4) Send to OpenAI for diagnosis
     print(">> [Pipeline] Sending to OpenAI for plant health diagnosis …")
@@ -288,7 +290,6 @@ def main():
         if diagnosis.get("leaf_color_match") != correct_match:
             diagnosis["leaf_color_match"] = correct_match
             if correct_match == "YES":
-                # Remove “leaf color mismatch” reasons
                 new_reasons = []
                 for reason in diagnosis.get("reasons_unhealthy", []):
                     if "leaf color" in reason.lower():
@@ -296,7 +297,6 @@ def main():
                     new_reasons.append(reason)
                 diagnosis["reasons_unhealthy"] = new_reasons
             else:
-                # If mismatch, insert a reason if not already there
                 mismatch_msg = "Observed leaf color does not match expected range"
                 diagnosis.setdefault("reasons_unhealthy", [])
                 if mismatch_msg not in diagnosis["reasons_unhealthy"]:

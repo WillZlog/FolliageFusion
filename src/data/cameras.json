@@ -1,0 +1,29 @@
+[
+  {
+    "id": "spruce",
+    "name": "Spruce Camera",
+    "species": "Spruce",
+    "previewImage": "images/spruceImage.png",
+    "dataUrl": "finalSuggestions/spruceRec.json",
+    "lat": 41.0180,
+    "lng": -73.6297
+  },
+  {
+    "id": "oak",
+    "name": "Oak Camera",
+    "species": "Oak",
+    "previewImage": "images/oakImage.png",
+    "dataUrl": "finalSuggestions/oakRec.json",
+    "lat": 69.420,
+    "lng": 69.420
+  },
+  {
+    "id": "birch",
+    "name": "Birch Camera",
+    "species": "Birch",
+    "previewImage": "images/birchImage.png",
+    "dataUrl": "finalSuggestions/birchRec.json",
+    "lat": 41,
+    "lng": -73
+  }
+]

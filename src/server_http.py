@@ -6,7 +6,9 @@ import base64
 import subprocess
 from pathlib import Path
 from flask import Flask, request, jsonify
-
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 app = Flask(__name__)
 
 # Directory where incoming images are saved
@@ -47,8 +49,9 @@ def plants_health():
     # 2) Spawn process_image.py (in the same folder) to do the rest.
     #    We use Popen so Flask returns immediately without waiting.
     try:
+        process_image_path = Path(__file__).parent / "process_image.py"
         subprocess.Popen(
-            ["python3", "process_image.py", str(img_path)]
+            ["python3", str(process_image_path), str(img_path)]
         )
     except Exception as e:
         print(f"❌ Error launching process_image.py: {e}")

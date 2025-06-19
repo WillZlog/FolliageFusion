@@ -4,7 +4,7 @@ process_image.py
 
 Called by server_http.py whenever a new JPEG arrives from the Pi.
 
-1) Run a PyTorch MobileNetV2–based “tree detection.” If no tree is found, delete the image and exit.
+1) Run a PyTorch MobileNetV2–based "tree detection." If no tree is found, delete the image and exit.
 2) If a tree is found, prompt user once (in the terminal) to input the species.
 3) Rename the JPEG to include the species.
 4) Ask for ZIP code.
@@ -12,6 +12,8 @@ Called by server_http.py whenever a new JPEG arrives from the Pi.
 """
 
 import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import subprocess
 from pathlib import Path
 
@@ -23,7 +25,7 @@ PLANT_KEYWORDS = {
     "plant", "flower", "leaf", "potted", "cactus", "fern", "vegetable",
     "houseplant", "shrub", "mushroom", "carnation", "sunflower", "daisy",
     "dandelion", "orchid", "rose", "tulip", "bonsai",
-    # tree‐related terms
+    # tree-related terms
     "tree", "oak", "pine", "birch", "maple", "elm", "willow", "cedar",
     "spruce", "sequoia", "redwood", "chestnut", "poplar", "fir", "ash",
     "cypress", "yew", "holly", "almond", "walnut", "linden", "cottonwood",
@@ -57,8 +59,9 @@ def main():
 
     # 5) Call the pipeline
     try:
+        pipeline_path = Path(__file__).parent / "pipeline.py"
         subprocess.run(
-            ["python3", "pipeline.py",
+            ["python3", str(pipeline_path),
              "--image", str(orig_path),
              "--species", species,
              "--zip", zip_code],

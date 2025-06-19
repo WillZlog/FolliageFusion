@@ -38,7 +38,7 @@ client = OpenAI(api_key=openai_api_key)
 
 # ——— Helper: load JSON context for camera ———
 def load_camera_context(camera_id: str) -> dict:
-    path = os.path.join("finalSuggestions", f"{camera_id}Rec.json")
+    path = os.path.abspath(os.path.join(os.path.dirname(__file__), "data", "finalSuggestions", f"{camera_id}Rec.json"))
     if not os.path.isfile(path):
         logger.warning("Context file missing: %s", path)
         return {}
