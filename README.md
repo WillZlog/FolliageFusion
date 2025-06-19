@@ -166,7 +166,9 @@ Built by [WillZLog](https://github.com/WillZLog) and \[Carson] — high school r
 
 ## 📄 License
 
-MIT License 
+This project is licensed under a [Creative Commons Attribution-NonCommercial 4.0 International License](https://creativecommons.org/licenses/by-nc/4.0/).
+
+You are free to **use, modify, and share** this software **for non-commercial purposes**, with attribution. Commercial use (including resale, SaaS, or monetized use) is **not permitted** without prior permission.
 
 ---
 
