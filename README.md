@@ -162,7 +162,7 @@ Built by \[@WillZLog] and \[Carson] — high school researchers and builders pas
 
 ## 📄 License
 
-MIT License (or specify your own)
+MIT License 
 
 ---
 
