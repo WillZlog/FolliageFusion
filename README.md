@@ -120,9 +120,10 @@ FolliageFusion/
    Create cameras.json inside the path static/data/
 
    It should look something like
+   
    ```json
    [
-  {
+    {
     "id": "spruce",
     "name": "Spruce Camera",
     "species": "Spruce",
@@ -130,9 +131,9 @@ FolliageFusion/
     "dataUrl": "finalSuggestions/spruceRec.json",
     "lat": 0.000,
     "lng": 0.0000
-  }
-  ]
-  ```
+    }
+   ]
+   ```
    Repeat for however many cameras you want to add
 
    !! IN THE FUTURE: AUTOMATICALLY GENERATE THESE !!
