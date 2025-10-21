@@ -13,9 +13,16 @@ I bought a **camera module** for the Rasp Pi and connected it and got it working
 me and crason02 got the idea for the project from seeing our community troubled by falling trees and power lines being knocked over and we decided that htis doesnt just have to be something we submit to, so we started ![IMG_8384-min.jpeg](https://blueprint.hackclub.com/user-attachments/blobs/proxy/eyJfcmFpbHMiOnsiZGF0YSI6MjcyNiwicHVyIjoiYmxvYl9pZCJ9fQ==--ac6b24fab45cd9886f821ef4fea9a47b80f90d46/IMG_8384-min.jpeg)
   
 
-## 10/20/2025 - Printed cases using 3d Printer  
+## 10/20/2025 8:01 PM - Printed cases using 3d Printer  
 
 I used my Elegoo 3d printer and freeCAD to create and print cases for esp32s, soil moisture sensors, and raspberry pi zeros. I also started thinking about and drawing diagrams on how to transfer images and data in areas with low to no wifi. I have a theory that by using esp-NOW to send encoded image chunks to a server that then decodes it. Still need to test this out however, will update soon.
 
 ![IMG_8441.jpg](https://blueprint.hackclub.com/user-attachments/blobs/proxy/eyJfcmFpbHMiOnsiZGF0YSI6Mzg4NiwicHVyIjoiYmxvYl9pZCJ9fQ==--023dceccdc8e5ad6a0edfa1637bfec844830f227/IMG_8441.jpg)  
+
+## 10/20/2025 8:14 PM - CAD models  
+
+This is the captive soil moisture model, covering circuits and leaving sensors exposed to actually monitor data and detect levels. ![Screenshot 2025-10-20 at 8.08.52 PM.png](https://blueprint.hackclub.com/user-attachments/blobs/proxy/eyJfcmFpbHMiOnsiZGF0YSI6Mzg5NCwicHVyIjoiYmxvYl9pZCJ9fQ==--7d36ada007a1b36757ff053448a92ebeee083912/Screenshot%202025-10-20%20at%208.08.52%E2%80%AFPM.png)
+
+This is the esp32 cover in order to cover the ESP32 and prevent from any water damage that could happen.![Screenshot 2025-10-20 at 8.06.05 PM.png](https://blueprint.hackclub.com/user-attachments/blobs/proxy/eyJfcmFpbHMiOnsiZGF0YSI6Mzg5MywicHVyIjoiYmxvYl9pZCJ9fQ==--5f2f12d60c8b54784b4b5f0bca46f455823d66fd/Screenshot%202025-10-20%20at%208.06.05%E2%80%AFPM.png)
+  
 
