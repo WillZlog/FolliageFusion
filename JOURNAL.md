@@ -6,14 +6,16 @@
   ==================================================================
 -->
 
-This is my journal of the design and building process of **Folliage Fusion**.  
-You can view this journal in more detail on **Hack Club Blueprint** [here](https://blueprint.hackclub.com/projects/592).
-
-
 ## 10/17/2025 - Got camera working with Raspberry Pi Zero W 2  
 
 I bought a **camera module** for the Rasp Pi and connected it and got it working. It took me a while because I couldn't get it working because I had to install an older version to get libcamera working. it was _verrrryyyyyyy_ annoying **:(**. 
 
 me and crason02 got the idea for the project from seeing our community troubled by falling trees and power lines being knocked over and we decided that htis doesnt just have to be something we submit to, so we started ![IMG_8384-min.jpeg](https://blueprint.hackclub.com/user-attachments/blobs/proxy/eyJfcmFpbHMiOnsiZGF0YSI6MjcyNiwicHVyIjoiYmxvYl9pZCJ9fQ==--ac6b24fab45cd9886f821ef4fea9a47b80f90d46/IMG_8384-min.jpeg)
   
+
+## 10/20/2025 - Printed cases using 3d Printer  
+
+I used my Elegoo 3d printer and freeCAD to create and print cases for esp32s, soil moisture sensors, and raspberry pi zeros. I also started thinking about and drawing diagrams on how to transfer images and data in areas with low to no wifi. I have a theory that by using esp-NOW to send encoded image chunks to a server that then decodes it. Still need to test this out however, will update soon.
+
+![IMG_8441.jpg](https://blueprint.hackclub.com/user-attachments/blobs/proxy/eyJfcmFpbHMiOnsiZGF0YSI6Mzg4NiwicHVyIjoiYmxvYl9pZCJ9fQ==--023dceccdc8e5ad6a0edfa1637bfec844830f227/IMG_8441.jpg)  
 
