@@ -26,3 +26,12 @@ This is the captive soil moisture model, covering circuits and leaving sensors e
 This is the esp32 cover in order to cover the ESP32 and prevent from any water damage that could happen.![Screenshot 2025-10-20 at 8.06.05 PM.png](https://blueprint.hackclub.com/user-attachments/blobs/proxy/eyJfcmFpbHMiOnsiZGF0YSI6Mzg5MywicHVyIjoiYmxvYl9pZCJ9fQ==--5f2f12d60c8b54784b4b5f0bca46f455823d66fd/Screenshot%202025-10-20%20at%208.06.05%E2%80%AFPM.png)
   
 
+## 10/29/2025 - Soil Moisture Sensor acquired + cases made  
+
+I made cases for the soil moisture sensor and got a couple sensors for testing purposes. I wired them to my ESP-C3 SuperMini and tested them and got code working to hook it all up
+![IMG_8507](https://blueprint.hackclub.com/user-attachments/blobs/proxy/eyJfcmFpbHMiOnsiZGF0YSI6NjU5NywicHVyIjoiYmxvYl9pZCJ9fQ==--88b03a1ba55f61ec5494e64513a65a593f96ac8e/IMG_8507.jpg)
+Also re updated cad models to GIT
+![IMG_8508](https://blueprint.hackclub.com/user-attachments/blobs/proxy/eyJfcmFpbHMiOnsiZGF0YSI6NjU5OCwicHVyIjoiYmxvYl9pZCJ9fQ==--0d05b9562bd07d8af4c2d5f1798fc8432ebd2ef9/IMG_8508.jpg)
+
+  
+
