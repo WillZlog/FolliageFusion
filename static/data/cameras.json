@@ -5,8 +5,8 @@
     "species": "Spruce",
     "previewImage": "images/spruceImage.png",
     "dataUrl": "finalSuggestions/spruceRec.json",
-    "lat": 41.0180,
-    "lng": -73.6297
+    "lat": 123,
+    "lng": 123
   },
   {
     "id": "oak",
@@ -14,8 +14,8 @@
     "species": "Oak",
     "previewImage": "images/oakImage.png",
     "dataUrl": "finalSuggestions/oakRec.json",
-    "lat": 69.420,
-    "lng": 69.420
+    "lat":123,
+    "lng": 123
   },
   {
     "id": "birch",
@@ -23,7 +23,7 @@
     "species": "Birch",
     "previewImage": "images/birchImage.png",
     "dataUrl": "finalSuggestions/birchRec.json",
-    "lat": 41,
-    "lng": -73
+    "lat": 123,
+    "lng": 123
   }
 ]
