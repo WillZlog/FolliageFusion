@@ -1,8 +1,6 @@
-# 🌿 FolliageFusion
+# FolliageFusion
 
-**FolliageFusion** is a smart, AI-powered tree health monitoring system designed for use with Raspberry Pi + Arduino-based cameras. It automatically takes photos of trees, identifies the species, and uses AI (via OpenAI + weather data + transcripts) to generate customized care recommendations based on real-time imagery and location data.
-
-> **Project Status**: 🚧 In active beta — data processing is complete, UI and user auth are in progress.
+**FolliageFusion** is a AI-powered tree health monitoring system designed for use with Raspberry Pi + Arduino-based cameras. It automatically takes photos of trees, identifies the species, and uses AI (via OpenAI + weather data + transcripts) to generate customized care recommendations based on real-time imagery and location data.
 
 ---
 
@@ -42,7 +40,7 @@
 
 ---
 
-## 📂 Project Structure (simplified)
+## 📂 Project Structure
 
 ```
 FolliageFusion/
@@ -86,8 +84,6 @@ FolliageFusion/
 * Youtube API key
 * Flask (multi-server)
 * Internet access for API calls + YouTube transcript fetching
-
-> The system also works on Windows machines for local testing or mock input.
 
 ---
 
@@ -168,22 +164,9 @@ FolliageFusion/
 
 ---
 
-## 🚣 Roadmap
-
-✅ Core AI pipeline complete
-✅ Multi-species support
-✅ Automated image ingestion
-✅ Basic care plan generation
-🔧 Frontend UI + login system
-🔧 Expand species library
-🔧 Notifications / mobile interface
-🔧 Deployment packaging for SD card images
-
----
-
 ## 🧑‍💻 Maintainers
 
-Built by [WillZLog](https://github.com/WillZLog) and [Crason02](https://github.com/Crason02) — high school researchers and builders passionate about AI + environmental sustainability.
+Built by [WillZLog](https://github.com/WillZLog) and [Crason02](https://github.com/Crason02)
 
 ---
 
@@ -192,9 +175,3 @@ Built by [WillZLog](https://github.com/WillZLog) and [Crason02](https://github.c
 This project is licensed under a [Creative Commons Attribution-NonCommercial 4.0 International License](https://creativecommons.org/licenses/by-nc/4.0/).
 
 You are free to **use, modify, and share** this software **for non-commercial purposes**, with attribution. Commercial use (including resale, SaaS, or monetized use) is **not permitted** without prior permission.
-
----
-
-## 📸 Demo (coming soon)
-
-> Screenshots or demo video will be added once UI development is complete.
